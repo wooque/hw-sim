@@ -1,6 +1,8 @@
 (ns hw-sim.core
   (:use [clojure.string :only [join]])
   (:gen-class))
+  
+(set! *warn-on-reflection* true)
 
 ; record for Pin with its state and connected components aka children
 (defrecord Pin [value children])
