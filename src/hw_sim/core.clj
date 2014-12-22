@@ -162,3 +162,5 @@
         (exec-clk comps history)
 
         (print-history history)))
+
+(-main)
