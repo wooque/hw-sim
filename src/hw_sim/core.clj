@@ -21,7 +21,7 @@
 
 (defprotocol LogicComponent
   "Protocol of logic component"
-  (logic-func [this components] "Function that logic component implements"))
+  (logic-func [this components] "Function logic component implements"))
 
 (defn simple-logical-func
   "Simplest logical function.
@@ -147,19 +147,18 @@
        (join "\n--------------\n")
        (println)))
 
-(def comps (atom {:bit (->BIT (->Pin 1 #{:reg}))
-            :not (->NOT [:reg :out] (->Pin 1 #{:reg}))
-            :reg (->REG [:not :out] (->Pin 0 #{:not}) [:bit :out] 1)}))
-(def history (atom [@comps]))
-
-(exec-clk comps history)
-(exec-clk comps history)
-(exec-clk comps history)
-(exec-clk comps history)
-
-(print-history history)
-
 (defn -main
   "Main"
   [& args]
-  (println "Hello"))
+  (let [comps (atom {:bit (->BIT (->Pin 1 #{:reg}))
+                     :not (->NOT [:reg :out] (->Pin 1 #{:reg}))
+                     :reg (->REG [:not :out] (->Pin 0 #{:not})
+                                 [:bit :out] 1)})
+        history (atom [@comps])]
+        
+        (exec-clk comps history)
+        (exec-clk comps history)
+        (exec-clk comps history)
+        (exec-clk comps history)
+
+        (print-history history)))
