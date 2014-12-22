@@ -17,7 +17,7 @@
   [components pin-names]
   (if (coll? (first pin-names))
     (map #(get-pin-value components %) pin-names)
-    '( (get-pin-value components pin-names) )))
+    (cons (get-pin-value components pin-names) '()) ))
 
 (defprotocol LogicComponent
   "Protocol of logic component"
@@ -125,9 +125,14 @@
   [comps history]
   (let [comp-order (atom clojure.lang.PersistentQueue/EMPTY)]
         (swap! comp-order #(into % (get-starting-components @comps)))
-        (while (not (empty? @comp-order))
-          (exec-one-comp comps comp-order))
-        (update-history history @comps)))
+        
+    (while (not (empty? @comp-order))
+      (exec-one-comp comps comp-order))
+    (update-history history @comps)))
+    
+(defn exec-num-clks
+  [num comps history]
+  (dotimes [_ num] (exec-clk comps history)))
              
 (defn comps-to-string
   "components to string"
@@ -147,20 +152,17 @@
        (join "\n--------------\n")
        (println)))
 
+(def comps (atom {:bit (->BIT (->Pin 1 #{:reg}))
+                  :not (->NOT [:reg :out] (->Pin 1 #{:reg}))
+                  :reg (->REG [:not :out] (->Pin 0 #{:not})
+                              [:bit :out] 1)}))
+(def history (atom [@comps]))
+  
+(exec-num-clks 5 comps history)
+
+(print-history history)
+
 (defn -main
   "Main"
   [& args]
-  (let [comps (atom {:bit (->BIT (->Pin 1 #{:reg}))
-                     :not (->NOT [:reg :out] (->Pin 1 #{:reg}))
-                     :reg (->REG [:not :out] (->Pin 0 #{:not})
-                                 [:bit :out] 1)})
-        history (atom [@comps])]
-        
-        (exec-clk comps history)
-        (exec-clk comps history)
-        (exec-clk comps history)
-        (exec-clk comps history)
-
-        (print-history history)))
-
-(-main)
+  (println "Main"))
