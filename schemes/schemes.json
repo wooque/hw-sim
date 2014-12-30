@@ -1,0 +1,35 @@
+{
+	"type": "scheme",
+	"name": "test",
+	"components": [
+		{
+			"type": "bit",
+			"name": "bit_one",
+			"init": 1,
+			"out": ["reg_main"]
+		},
+		{
+			"type": "not",
+			"name": "reg_neg",
+			"in": {
+				"component": "reg_main",
+				"pin": "out"
+			},
+			"out": ["reg_main"]
+		},
+		{
+			"type": "reg",
+			"name": "reg_main",
+			"init": 1,
+			"in": {
+				"component": "reg_not",
+				"pin": "out"
+			},
+			"out": ["reg_not"],
+			"ld": {
+				"component": "bit_one",
+				"pin": "out"
+			}
+		}
+	]
+}

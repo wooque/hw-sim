@@ -1,5 +1,6 @@
 (ns hw-sim.core
-  (:use [clojure.string :only [join]])
+  (:require [clojure.string :refer [join]]
+            [cheshire.core :as json :refer [parse-string]])
   (:gen-class))
   
 (set! *warn-on-reflection* true)
@@ -121,7 +122,7 @@
       (update-comp-order comp-order next-comps @components))))
 
 (defn exec-clk
-  "Execute clk"
+  "Execute one hardware clock"
   [comps history]
   (let [comp-order (atom clojure.lang.PersistentQueue/EMPTY)]
         (swap! comp-order #(into % (get-starting-components @comps)))
@@ -131,11 +132,62 @@
     (update-history history @comps)))
     
 (defn exec-num-clks
+  "Execute given number of hardware clocks"
   [num comps history]
   (dotimes [_ num] (exec-clk comps history)))
-             
+
+(defn load-scheme-data
+  "Load hardware scheme from JSON file"
+  [file]
+    (-> (slurp file)
+        (json/parse-string true)))
+
+(defn make-comp-name
+  "Makes component name in format parent/component-name"
+  [parent component]
+    (if parent
+      (str parent "/" component)
+      component))
+      
+(defn norm-comp-name
+  "For names from local scheme put prefix, also keywordize all names"
+  [^String comp-name scheme]
+    (-> (if (.contains comp-name "/")
+          (comp-name)
+          (make-comp-name scheme comp-name))
+       
+        (keyword)))
+
+; function for making components from raw data 
+(defmulti process-comp (fn [component scheme comps] (:type component)))
+
+(defmethod process-comp "scheme"
+  [scheme parent-scheme comps]
+    (let [scheme-prefix (make-comp-name parent-scheme (:name scheme))]
+      (->> (:components scheme)
+           (reduce #(process-comp %2 scheme-prefix %1) comps))))
+    
+(defmethod process-comp "not"
+  [not-data scheme comps]
+    (let [input (:in not-data)
+          in-comp (norm-comp-name (:component input) scheme)
+          in-pin (norm-comp-name (:pin input) scheme)
+          out-pin (map #(norm-comp-name % scheme) (:out not-data))
+          not-comp (->NOT [in-comp in-pin] (->Pin 1 (set out-pin)))]
+      
+      (->> (norm-comp-name (:name not-data) scheme)
+           (#(assoc comps % not-comp)))))
+    
+(defmethod process-comp "bit"
+  [bit-data scheme comps]
+    comps)
+    
+(defmethod process-comp "reg"
+  [reg-data scheme comps]
+    comps)
+
 (defn comps-to-string
-  "components to string"
+  "Makes string from map of components"
   [comps]
   (->> (map #(str (key %)
               " "
@@ -146,21 +198,25 @@
         (join \newline)))
         
 (defn print-history
-  "Print history"
+  "Pretty print history"
   [history]
   (->> (map #(comps-to-string %) @history)
        (join "\n--------------\n")
        (println)))
 
-(def comps (atom {:bit (->BIT (->Pin 1 #{:reg}))
-                  :not (->NOT [:reg :out] (->Pin 1 #{:reg}))
-                  :reg (->REG [:not :out] (->Pin 0 #{:not})
-                              [:bit :out] 1)}))
-(def history (atom [@comps]))
-  
-(exec-num-clks 5 comps history)
+;(def comps (atom {:bit_one (->BIT (->Pin 1 #{:reg_main}))
+                  ;:reg_neg (->NOT [:reg_main :out] (->Pin 1 #{:reg_main}))
+                  ;:reg_main (->REG [:reg_neg :out] (->Pin 0 #{:reg_neg})
+                              ;[:bit_one :out] 1)}))
+;(def history (atom [@comps]))
+;
+;(exec-num-clks 5 comps history)
+;
+;(print-history history)
 
-(print-history history)
+(def scheme-data (load-scheme-data "schemes/schemes.json"))
+(def scheme (process-comp scheme-data nil {}))
+(println scheme)
 
 (defn -main
   "Main"
