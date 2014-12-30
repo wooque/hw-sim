@@ -24,6 +24,11 @@
   "Protocol of logic component"
   (logic-func [this components] "Function logic component implements"))
 
+(defn get-comp-children
+  "Gets all compoenents theat are connected on output of component"
+  [comp]
+  (get-in comp [:out :children]))
+
 (defn simple-logical-func
   "Simplest logical function.
   Get all :in pins, apply function and set output to :out pin"
@@ -33,7 +38,7 @@
         (apply func)
         (assoc-in comp [:out :value]))
    
-   (get-in comp [:out :children])])
+   (get-comp-children comp)])
 
 (defmacro defcomponent
   [kind func & additional-pins]
@@ -55,11 +60,13 @@
 ; definition for NOT logical component
 (defcomponent NOT (partial simple-logical-func not-func))
 
+(defn bit-func
+  "BIT function, returns unmodified component and value of output pin"
+  [comp comps]
+  [comp (get-comp-children comp)])
+
 ; Standalone Pin definition
-(defrecord BIT [out]
-  LogicComponent
-  (logic-func [this components]
-    ([this (get-in comp [:out :children])])))
+(defcomponent BIT bit-func)
 
 (defn simple-reg-func
   "Simple register function"
@@ -69,7 +76,7 @@
          
          (when (= load-pin 1) (assoc-in comp [:out :value] input-pin)))
    
-   (get-in comp [:out :children])])
+   (get-comp-children comp)])
 
 ; definition for REG logic component
 (defcomponent REG simple-reg-func ld clk)
@@ -204,10 +211,15 @@
        (join "\n--------------\n")
        (println)))
 
-;(def comps (atom {:bit_one (->BIT (->Pin 1 #{:reg_main}))
-                  ;:reg_neg (->NOT [:reg_main :out] (->Pin 1 #{:reg_main}))
-                  ;:reg_main (->REG [:reg_neg :out] (->Pin 0 #{:reg_neg})
-                              ;[:bit_one :out] 1)}))
+;(def comps (atom {:bit_one (->BIT nil
+                                  ;(->Pin 1 #{:reg_main}))
+                  ;
+                  ;:reg_neg (->NOT [:reg_main :out]
+                                  ;(->Pin 1 #{:reg_main}))
+                  ;
+                  ;:reg_main (->REG [:reg_neg :out]
+                                   ;(->Pin 0 #{:reg_neg})
+                                   ;[:bit_one :out] 1)}))
 ;(def history (atom [@comps]))
 ;
 ;(exec-num-clks 5 comps history)
