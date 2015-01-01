@@ -11,25 +11,16 @@
 		{
 			"type": "not",
 			"name": "reg_neg",
-			"in": {
-				"component": "reg_main",
-				"pin": "out"
-			},
+			"in": ["reg_main", "out"],
 			"out": ["reg_main"]
 		},
 		{
 			"type": "reg",
 			"name": "reg_main",
 			"init": 1,
-			"in": {
-				"component": "reg_not",
-				"pin": "out"
-			},
-			"out": ["reg_not"],
-			"ld": {
-				"component": "bit_one",
-				"pin": "out"
-			}
+			"in": ["reg_neg", "out"],
+			"out": ["reg_neg"],
+			"ld": ["bit_one", "out"]
 		}
 	]
 }
